@@ -55,7 +55,6 @@ if(any(gapminder$year == year)){
 
 Write a script that finds the mean life expectancy by country for countries whose population is below the mean for the dataset
 
-Write a script that loops through the `gapminder` data by continent and prints out whether the mean life expectancy is smaller than 50, between 50 and 70, or greater than 70.
 
 ```{asis}
 ### Answer
@@ -73,6 +72,8 @@ for (i in unique(gapminder$country)) {
    } 
 } # end for loop
 ```
+
+Write a script that loops through the `gapminder` data by continent and prints out whether the mean life expectancy is smaller than 50, between 50 and 70, or greater than 70.
 
 ```{r}
 lower_threshold <- 50
@@ -142,4 +143,28 @@ Use what you've learned so far to answer the following questions using the `gapm
 
 1. What is the relationship between GDP per capita and life expectancy? Does this relationship change over time? (Hint: Use the natural log of both variables.)
 
+```{r}
+x<-gapminder$gdpPercap
+y<-gapminder$lifeExp
+fit <- lm(y ~ x)
+plot(y ~ x,xlab="gdpPercap",ylab="lifeExp")
+lines(x, predict(fit), col = 'blue')
+```
+
+
 2. Does the relationship between GDP per capita and life expectacy vary by continent? Make sure you divide the Americas into North and South America.
+
+```{r}
+
+cont<-unique(gapminder$continent)
+for (i in cont){
+  fit <- lm(gapminder$lifeExp[gapminder$continent==i]~gapminder$gdpPercap[gapminder$continent==i])
+  plot(gapminder$lifeExp[gapminder$continent==i]~gapminder$gdpPercap[gapminder$continent==i],xlab="gdpPercap",ylab="lifeExp",main=i)
+  lines(gapminder$gdpPercap[gapminder$continent==i], predict(fit), col = 'blue')
+}
+
+
+
+
+```
+
