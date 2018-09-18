@@ -1,0 +1,231 @@
+---
+title: "R Day2"
+author: "LinxinXu"
+date: "9/18/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+here::here("data","gapminder5.csv")
+gapminder<-read.csv(here::here("data","gapminder5.csv"))
+str(gapminder)
+
+```
+
+##Converting factors to strings/characters
+#rm(list=ls()): remove all things in the environment 
+```{r}
+gapminder$country <- as.character(gapminder$country)
+gapminder$continent <- as.character(gapminder$continent)
+mean(gapminder$lifeExp[gapminder$country=="Afghanistan"])
+str(gapminder)
+```
+
+##for loop: recover gdp for each country
+```{r}
+obs<-1:nrow(gapminder)
+for (i in obs) {
+  gapminder[i,"gdp"]<-gapminder[i,"pop"]*gapminder[i,"gdpPercap"]
+}
+
+for (i in obs) {
+  gapminder[i,"log_gdpPercap"]<-log(gapminder[i,"gdpPercap"])
+  gapminder[i,"log_pop"]<-log(gapminder[i,"pop"])
+}
+
+#another way 
+gapminder$vec_log_gdpPercap<-log(gapminder$gdpPercap)
+all(gapminder$vec_log_gdpPercap==gapminder$log_gdpPercap)
+```
+
+##mean life expectancy each year
+```{r}
+years <- unique(gapminder$year)
+for (i in years) {
+  mean_le <- mean(gapminder$lifeExp[gapminder$year == i], na.rm = T)
+  #not separate strings when paste together
+  print(paste0(i, ": ", mean_le))
+}
+
+conts <- unique(gapminder$continent)
+for (i in conts) {
+  mean_le<-mean(gapminder$lifeExp[gapminder$continent==i],na.rm = T)
+  print(paste0(i, ": ", mean_le))
+}
+```
+
+
+##nested for loop: mean life expectancy for each continent for each year
+```{r}
+for (i in unique(gapminder$continent)) {
+  print(paste0("Continent: ", i))
+  for (j in unique(gapminder$year)){
+    mean_le<-mean(gapminder$lifeExp[gapminder$year==j&gapminder$continent==i],na.rm=T)
+    print(paste0(j, ": ", mean_le))
+    
+  }
+}
+
+years <- unique(gapminder$year)
+conts <- unique(gapminder$continent)
+for (i in conts) {
+  print(paste0("Continent: ", i))
+  for (j in years) {
+    sd_le <- sd(gapminder$lifeExp[gapminder$continent == i & gapminder$year == j], 
+                na.rm = T)
+    print(paste0(j, ": ", sd_le))
+  }
+}
+```
+
+
+##apply family: apply
+```{r}
+#iterates over rows (1) and cols(2), needs usually a matrix 
+vars<-gapminder[,c("lifeExp","pop","gdpPercap")]
+apply(vars,2,mean) 
+
+#another way
+for (i in vars) {
+  print(mean(i))
+}
+```
+
+##lapply: returns a list, iterate over a values in a vector or list, not rows/cols
+```{r}
+lapply(gapminder, mean)
+```
+
+##sapply: returns a simplified list (i.e., a vector)
+```{r}
+#mean of lifeExp of each year
+years <- unique(gapminder$year)
+sapply(years, function(x) mean(gapminder$lifeExp[gapminder$year==x]))
+#iterate over first arg
+```
+
+##while loop
+```{r}
+i <-  1952 # define the interator
+while (i < 1987) {
+  sd_le <- sd(gapminder$lifeExp[gapminder$year == i])
+  print(paste0(i, ": ", sd_le)) #do not want any separator use
+  i <- i + 5 # increase the iterator by the interval between years
+  }
+
+# What is the standard deviation for life expectancy for each year between 1987 and 2002 (inclusive)?
+
+i <-  1987 # define the interator
+while (i < 2002) {
+  sd_le <- sd(gapminder$lifeExp[gapminder$year == i])
+  print(paste0(i, ": ", sd_le)) #do not want any separator use
+  i <- i + 1 # increase the iterator by the interval between years
+  }
+```
+
+##if else condition 
+```{r}
+set.seed(10)
+random_year <- sample(years, 1)
+
+if (random_year > 1977) {
+  print(random_year)
+}
+
+set.seed(1)
+random_year <- sample(years, 1)
+if (random_year > 1977) {
+  print(paste0(random_year, ": ", 
+               mean(gapminder$lifeExp[gapminder$year == random_year])))
+  } else { 
+    print("sorry, random year is less than 1977")
+    }
+
+```
+
+
+##if else in for loop
+```{r}
+threshold <- 70
+
+for (i in unique(gapminder$continent)) {
+   tmp <- mean(gapminder$lifeExp[gapminder$continent==i])
+   
+   if (tmp < threshold) {
+       print(paste("Mean Life Expectancy in", i, "is less than", threshold))
+   } else {
+       print(paste("Mean Life Expectancy in", i, "is greater than", threshold))
+   }
+}
+
+
+##Write a for loop that reports the mean population for years greater than or equal to 1987. Make sure the loop prints a message if the condition is not met!
+
+for (i in unique(gapminder$year)){
+  if (i>=1987){
+    print(paste("the mean population for", i, "is", mean(gapminder$pop[gapminder$year==i],na.rm = T)))
+  }else{
+    print("Sorry, the condition is not met!")
+  }
+}
+```
+
+##writing functions 
+```{r}
+get_values <-
+  function(df, variable = "continent") {
+    vals <- unique(df[[variable]])
+    print(paste0(variable, ": ", vals))
+  }
+
+
+report_mean_sd <- 
+  function(df, variable, country) {
+    var <- df[[variable]][df$country == country]
+    m_le <- mean(var)
+    sd_le <- sd(var)
+    cat("Country:", country, 
+        "\nMean Life Expectancy:", m_le,
+        "\nSD Life Expectancy:", sd_le)
+  }
+report_mean_sd(gapminder, "lifeExp", "Bulgaria")
+
+
+report_stats<-function (df, variable, continent){
+  var<-df[[variable]][df$continent==continent]
+  print(summary(var))
+}
+report_stats(gapminder, "lifeExp", "Asia")
+```
+
+
+##Functions and loops, together
+```{r}
+#A log-log model relating life expectancy to GDP
+viz_lm <-function(df, dv, iv, year) {
+  #dependent and independent variable 
+  dat <- df[df[["year"]] == year, ]
+  y <- log(dat[[dv]])
+  x <- log(dat[[iv]])
+  fit <- lm(y ~ x)
+  plot(y ~ x, main = year,xlab = iv, ylab = dv)
+  lines(x, predict(fit), col = 'blue')
+  }
+viz_lm(gapminder, "lifeExp", "gdpPercap", 1977)
+for (i in years) {
+  viz_lm(gapminder, "lifeExp", "gdpPercap", i)
+}
+```
+
+
+
+
+
+
+
+
