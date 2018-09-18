@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-here::here("data","gapminder5.csv")
+here::here("data","gapminder5.csv") #find the home directory and paste things together
 gapminder<-read.csv(here::here("data","gapminder5.csv"))
 str(gapminder)
 
@@ -221,6 +221,9 @@ for (i in years) {
   viz_lm(gapminder, "lifeExp", "gdpPercap", i)
 }
 ```
+
+#modification 
+
 
 
 
