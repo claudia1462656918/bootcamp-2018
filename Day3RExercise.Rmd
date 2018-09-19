@@ -1,0 +1,150 @@
+---
+title: "Day3RExercise_XuLinxin"
+author: "LinxinXu"
+date: "9/19/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##Exploring the data
+```{r}
+here::here("data","generation.csv") #find the home directory and paste things together
+generation<-read.csv(here::here("data","generation.csv"),stringsAsFactors = F)
+
+here::here("data","imports.csv") #find the home directory and paste things together
+imports<-read.csv(here::here("data","imports.csv"),stringsAsFactors = F)
+
+str(generation)
+str(imports)
+
+class(generation$datetime)
+class(imports$datetime)
+
+##preserve date and time 
+library(lubridate)
+generation$datetime <- as_datetime(generation$datetime)
+class(generation$datetime)
+imports$datetime<-as_datetime(imports$datetime)
+class(imports$datetime)
+```
+
+##Reshaping data--melt, dcast, recast
+```{r}
+library(reshape2)
+#melt: one obs per row, id.vars can hold several vars using c("id","time") 
+long_gen <- melt(generation, id.vars = "datetime",variable.name = "source",
+                 value.name = "usage")
+head(long_gen)
+#order gives index, not actual number
+long_gen[order(long_gen$datetime)[1:20], ]
+
+merged_energy <- merge(generation, imports, by = "datetime")
+dim(merged_energy)
+long_merged_energy <- melt(merged_energy, id.vars = "datetime",variable.name =
+                             "source",value.name = "usage")
+```
+
+
+##Dplyr:select,filter,mutate,summarize
+
+##Select: subset variables--one_of(),contains(),starts_with(),ends_with(),matches()
+```{r}
+library(dplyr)
+tmp <- select(merged_energy, biogas, biomass, geothermal, solar)
+names(tmp)
+tmp <- select(merged_energy, -biogas, -biomass, -geothermal, -solar)
+names(tmp)
+tmp <- select(merged_energy, contains("hydro"), starts_with("bio"))
+names(tmp)
+```
+
+##Filter:subset observations based on conditions
+```{r}
+tmp <- filter(merged_energy, imports > 7000)
+head(tmp)
+#could use | for or instead of and condition 
+tmp <- filter(merged_energy, imports > 7000, natural_gas < 7000)
+head(tmp)
+```
+
+##Mutate--create new varaibles
+```{r}
+tmp <- mutate(long_merged_energy, log_usage = log(usage))
+head(tmp)
+tmp <- mutate(long_merged_energy, log_usage = log(usage), usage2 = usage^2, usage3 
+              = usage^3)
+head(tmp)
+```
+
+##Summarize: reduce multiple observations to a single value (e.g., find the mean)
+```{r}
+summarize(long_merged_energy, total = sum(usage, na.rm = T))
+#While piping, the piped dataframe is not changed!
+#To refer to the manipulated dataframe, use .
+summarize(long_merged_energy, mean_cons = mean(usage, na.rm = T))
+
+```
+
+#Pipe: shortcut--shift cmd m
+```{r}
+long_merged_energy %>% 
+  filter(source == "geothermal") %>% 
+  select(-datetime) %>% 
+  mutate(log_usage = log(usage)) %>% 
+  summarize(mean_log_usage = mean(log_usage, na.rm = T))
+
+#can add dot after (), doing the same thing 
+merged_energy %>% 
+  select(-datetime) %>% 
+  mutate(total_usage = rowSums(., na.rm = T)) %>% 
+  summarize(total_usage = sum(total_usage, na.rm = T))
+
+```
+
+```{r,eval=FALSE}
+#Wrong way, bc using "merged_energy
+merged_energy %>% 
+  select(-datetime) %>% 
+  mutate(total_usage = rowSums(merged_energy, na.rm = T)) %>% 
+  summarize(total_usage = sum(total_usage, na.rm = T))
+```
+
+
+##Exercise
+```{r}
+merged_energy %>% select(contains("hydro")) %>% mutate(total_hydro=rowSums(.,na.rm = T)) %>% summarize(mean_usage=mean(total_hydro,na.rm=T))
+```
+
+##group by & summarise: perform operations by groups of observations!
+```{r}
+long_merged_energy %>% 
+  group_by(source) %>% 
+  summarize(sum_usage = sum(usage, na.rm = T))
+```
+
+
+##Exercise
+```{r}
+merged_energy %>% select(datetime,contains("hydro"),starts_with("bio")) %>% melt(.,id.vars="datetime",variable.name = "source", value.name = "usage") %>% group_by(source) %>% summarise(mean_usage=mean(usage,na.rm = T))
+```
+
+
+
+#group by VS. for loop
+```{r}
+gapminder <- read.csv(here::here("data/gapminder5.csv"))
+gapminder %>% 
+  group_by(year) %>% 
+  summarize(mean_le = mean(lifeExp, na.rm = T),
+            sd_lf = sd(lifeExp, na.rm = T))
+```
+
+
+
+
+
+
